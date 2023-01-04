@@ -257,6 +257,9 @@ def extract_features_and_train(paths, mid_window, mid_step, short_window,
     """
 
     # STEP A: Feature Extraction:
+
+    print("HELLO WORLD!!!")
+
     features, class_names, file_names = \
         aF.multiple_directory_feature_extraction(paths, mid_window, mid_step,
                                                  short_window, short_step,
