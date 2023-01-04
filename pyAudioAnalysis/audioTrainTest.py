@@ -259,7 +259,6 @@ def extract_features_and_train(paths, mid_window, mid_step, short_window,
     # STEP A: Feature Extraction:
 
     print("HELLO WORLD!!!")
-
     features, class_names, file_names = \
         aF.multiple_directory_feature_extraction(paths, mid_window, mid_step,
                                                  short_window, short_step,
@@ -313,6 +312,133 @@ def extract_features_and_train(paths, mid_window, mid_step, short_window,
                                      classifier_par, 1, list_of_ids, n_exp=-1,
                                      train_percentage=train_percentage,
                                      smote=use_smote)
+
+    print("Selected params: {0:.5f}".format(best_param))
+
+    # STEP C: Train and Save the classifier to file
+    # Get featues in the X, y format:
+    features, labels = features_to_matrix(features)
+    # Apply smote if necessary:
+    if use_smote:
+        sm = SMOTE(random_state=2)
+        features, labels = sm.fit_resample(features, labels)
+   
+    # Use mean/std standard feature scaling:
+    scaler = StandardScaler()
+    features = scaler.fit_transform(features)
+    mean = scaler.mean_.tolist()
+    std = scaler.scale_.tolist()
+
+    # Then train the final classifier
+    if classifier_type == "svm":
+        classifier = train_svm(features, labels, best_param)
+    elif classifier_type == "svm_rbf":
+        classifier = train_svm(features, labels, best_param, kernel='rbf')
+    elif classifier_type == "randomforest":
+        classifier = train_random_forest(features, labels, best_param)
+    elif classifier_type == "gradientboosting":
+        classifier = train_gradient_boosting(features, labels, best_param)
+    elif classifier_type == "extratrees":
+        classifier = train_extra_trees(features, labels, best_param)
+
+    # And save the model to a file, along with
+    # - the scaling -mean/std- vectors)
+    # - the feature extraction parameters
+    if classifier_type == "knn":
+        feature_matrix = features.tolist()
+        labels = labels.tolist()
+        save_path = model_name
+        save_parameters(save_path, feature_matrix, labels, mean, std,
+                        class_names, best_param, mid_window, mid_step,
+                        short_window, short_step, compute_beat)
+
+    elif classifier_type == "svm" or classifier_type == "svm_rbf" or \
+            classifier_type == "randomforest" or \
+            classifier_type == "gradientboosting" or \
+            classifier_type == "extratrees":
+        with open(model_name, 'wb') as fid:
+            cPickle.dump(classifier, fid)
+        save_path = model_name + "MEANS"
+        save_parameters(save_path, mean, std, class_names, mid_window, mid_step,
+                        short_window, short_step, compute_beat)
+
+
+def dst_extract_features_and_train(paths, mid_window, mid_step, short_window,
+                               short_step, classifier_type, model_size, model_name,
+                               compute_beat=False, train_percentage=0.90):
+    """
+    This function is used as a wrapper to segment-based audio feature extraction
+    and classifier training.
+    ARGUMENTS:
+        paths:                      list of paths of directories. Each directory
+                                    contains a signle audio class whose samples
+                                    are stored in seperate WAV files.
+        mid_window, mid_step:       mid-term window length and step
+        short_window, short_step:   short-term window and step
+        classifier_type:            "svm" or "knn" or "randomforest" or
+                                    "gradientboosting" or "extratrees"
+        model_name:                 name of the model to be saved
+        dict_of_ids:                a dictionary which has as keys the full path of audio files and as values the respective group ids
+    RETURNS:
+        None. Resulting classifier along with the respective model
+        parameters are saved on files.
+    """
+
+    # STEP A: Feature Extraction:
+
+    print("HELLO WORLD!!!")
+    dict_of_ids=None
+    use_smote=False
+    features, class_names, file_names = \
+        aF.multiple_directory_feature_extraction(paths, mid_window, mid_step,
+                                                 short_window, short_step,
+                                                 compute_beat=compute_beat)
+    file_names = [item for sublist in file_names for item in sublist]
+    if dict_of_ids:
+        list_of_ids = [dict_of_ids[file] for file in file_names]
+    else:
+        list_of_ids = None
+    if len(features) == 0:
+        print("trainSVM_feature ERROR: No data found in any input folder!")
+        return
+
+    n_feats = features[0].shape[1]
+    feature_names = ["features" + str(d + 1) for d in range(n_feats)]
+
+    for i, feat in enumerate(features):
+        if len(feat) == 0:
+            print("trainSVM_feature ERROR: " + paths[i] +
+                  " folder is empty or non-existing!")
+            return
+
+    # STEP B: classifier Evaluation and Parameter Selection:
+    if classifier_type == "svm" or classifier_type == "svm_rbf":
+        classifier_par = np.array([0.001, 0.01,  0.5, 1.0, 5.0, 10.0, 20.0])
+    elif classifier_type == "randomforest":
+        classifier_par = np.array([10, 25, 50, 100, 200, 500])
+    elif classifier_type == "knn":
+        classifier_par = np.array([1, 3, 5, 7, 9, 11, 13, 15])
+    elif classifier_type == "gradientboosting":
+        classifier_par = np.array([10, 25, 50, 100, 200, 500])
+    elif classifier_type == "extratrees":
+        classifier_par = np.array([10, 25, 50, 100, 200, 500])
+
+    # get optimal classifier parameter:
+    temp_features = []
+    for feat in features:
+        if feat.ndim == 1: # this class has only 1 sample
+            feat = feat.reshape((1, feat.shape[0]))
+        temp = []
+        for i in range(feat.shape[0]):
+            temp_fv = feat[i, :]
+            if (not np.isnan(temp_fv).any()) and (not np.isinf(temp_fv).any()):
+                temp.append(temp_fv.tolist())
+            else:
+                print("NaN Found! Feature vector not used for training")
+        temp_features.append(np.array(temp))
+    features = temp_features
+
+    best_param = model_size
 
     print("Selected params: {0:.5f}".format(best_param))
 
