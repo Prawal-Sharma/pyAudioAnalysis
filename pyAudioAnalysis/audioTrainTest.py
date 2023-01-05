@@ -234,10 +234,8 @@ def train_random_forest_regression(features, labels, n_estimators):
 
 
 def extract_features_and_train(paths, mid_window, mid_step, short_window,
-                               short_step, classifier_type, model_name,
-                               compute_beat=False, train_percentage=0.90,
-                               dict_of_ids=None,
-                               use_smote=False):
+                               short_step, classifier_type, model_size, model_name,
+                               compute_beat=False, train_percentage=0.90):
     """
     This function is used as a wrapper to segment-based audio feature extraction
     and classifier training.
@@ -257,6 +255,10 @@ def extract_features_and_train(paths, mid_window, mid_step, short_window,
     """
 
     # STEP A: Feature Extraction:
+
+    print("HELLO WORLD!!!")
+    dict_of_ids=None
+    use_smote=False
     features, class_names, file_names = \
         aF.multiple_directory_feature_extraction(paths, mid_window, mid_step,
                                                  short_window, short_step,
@@ -306,10 +308,7 @@ def extract_features_and_train(paths, mid_window, mid_step, short_window,
         temp_features.append(np.array(temp))
     features = temp_features
 
-    best_param = evaluate_classifier(features, class_names, classifier_type,
-                                     classifier_par, 1, list_of_ids, n_exp=-1,
-                                     train_percentage=train_percentage,
-                                     smote=use_smote)
+    best_param = model_size
 
     print("Selected params: {0:.5f}".format(best_param))
 
@@ -320,7 +319,7 @@ def extract_features_and_train(paths, mid_window, mid_step, short_window,
     if use_smote:
         sm = SMOTE(random_state=2)
         features, labels = sm.fit_resample(features, labels)
-   
+
     # Use mean/std standard feature scaling:
     scaler = StandardScaler()
     features = scaler.fit_transform(features)
@@ -359,11 +358,6 @@ def extract_features_and_train(paths, mid_window, mid_step, short_window,
         save_path = model_name + "MEANS"
         save_parameters(save_path, mean, std, class_names, mid_window, mid_step,
                         short_window, short_step, compute_beat)
-
-
-def dst_extract_features_and_train(input): 
-    print(input)
-   
 
 
 def save_parameters(path, *parameters):
