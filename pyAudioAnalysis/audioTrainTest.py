@@ -361,9 +361,7 @@ def extract_features_and_train(paths, mid_window, mid_step, short_window,
                         short_window, short_step, compute_beat)
 
 
-def dst_extract_features_and_train(paths, mid_window, mid_step, short_window,
-                               short_step, classifier_type, model_size, model_name,
-                               compute_beat=False, train_percentage=0.90):
+def dst_extract_features_and_train():
     
 
     print("HELLO WORLD!!!")
