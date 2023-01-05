@@ -361,10 +361,8 @@ def extract_features_and_train(paths, mid_window, mid_step, short_window,
                         short_window, short_step, compute_beat)
 
 
-def dst_extract_features_and_train():
-    
-
-    print("HELLO WORLD!!!")
+def dst_extract_features_and_train(input): 
+    print(input)
    
 
 
